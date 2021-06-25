@@ -24,8 +24,7 @@ This image supports tracing in Docker-for-Mac and in Linux workloads.
 
 # Getting Started
 
-The Docker Image is published on docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest and is **Publicly Available**
-without any authentication.
+The Docker Image is published on docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest and is **Publicly Available** without any authentication.
 
 ## Usage in Docker
 
@@ -52,7 +51,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: debugger
-  # namespace: test-sebastian-perfdebugging # set as needed
+  # namespace: test-perfdebugging # set as needed
 spec:
   # nodeName: .... # you should pin the workload to the node you want to debug.
   hostPID: true
@@ -63,6 +62,9 @@ spec:
       imagePullPolicy: Always
       securityContext:
         privileged: true
+      env:
+        - name: SHELL_ENV_DISPLAY
+          value: production system # configures the colorful warning in the bash, see bash.colorprompt.sh
 ```
 
 Now, wait until the container is up and running fully: `kubectl get pods -w`.
@@ -96,7 +98,9 @@ This includes following tools on PATH:
   Usage Examples: https://github.com/iovisor/bpftrace/blob/master/README.md#tools
 - eBPF BCC tools: http://www.brendangregg.com/BPF/bpf_performance_tools_book.png
   Usage Examples: https://github.com/iovisor/bcc#contents
-+ some more (traceloop, jq, vim, calicoctl, websocat, docker CLI)
+  MORE tools: https://github.com/brendangregg/bpf-perf-tools-book
+    - https://github.com/brendangregg/bpf-perf-tools-book/blob/master/originals/Ch10_Networking/soconnect.bt
++ some more (traceloop, jq, vim, calicoctl, websocat, docker CLI, tmux, screen)
 ---------------------------------------------
 USAGE
 
@@ -118,11 +122,15 @@ FIRST STEPS
 
 ps faux            # process listing
 bpftrace -l        # list BPF probes
+bpftrace -lv tracepoint:syscalls:sys_enter_connect
+                   # get args of tracepoint
 ls /proc/1/root/   # contains the HOST file system !!! WATCH OUT !!!
 ls /bpf/           # our custom bpftrace scripts
+tmux -CC           # for opening a multiplexed console (iTerm on OSX only). ESC to send to BD
+tmux -CC attach    # for reconnecting to the BG shell  (iTerm on OSX only)
+screen             # alternative to tmux
 ---------------------------------------------
 ```
-
 
 # Included Tooling
 

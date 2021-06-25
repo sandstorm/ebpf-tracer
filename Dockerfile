@@ -110,4 +110,11 @@ ADD /bpf /bpf
 # needed for tmux -CC attach
 ENV LANG=UTF-8
 
+# to avoid down-times due to "ops, wrong terminal"
+# color the prompt according to $SHELL_ENV_DISPLAY variable
+ADD bash.colorprompt.sh .
+RUN cat bash.colorprompt.sh >> /root/.bashrc && \
+    rm bash.colorprompt.sh
+ENV SHELL_ENV_DISPLAY="production system"
+
 CMD ["/command.sh"]
