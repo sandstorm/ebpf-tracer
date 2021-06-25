@@ -103,11 +103,11 @@ RUN touch /usr/src/.notmounted && \
     ln -s /usr/bin/bpftrace /usr/local/bin/bpftrace
 
 # add assets
-ADD entrypoint.sh /entrypoint.sh
+ADD command.sh /command.sh
 ADD prepare-bpf.sh /prepare-bpf.sh
 ADD /bpf /bpf
 
 # needed for tmux -CC attach
 ENV LANG=UTF-8
 
-CMD ["/entrypoint.sh"]
+CMD ["/command.sh"]
