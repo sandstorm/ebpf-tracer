@@ -73,7 +73,7 @@ RUN apt-get install -y gnupg && curl -fsSL https://download.docker.com/linux/ubu
 COPY --from=kinvolk/traceloop:latest /bin/traceloop /bin/traceloop
 
 # BPF CC (BCC)
-RUN apt-get install -y bpfcc-tools
+RUN apt-get install -y bpfcc-tools tmux screen
 
 # bpftrace https://github.com/iovisor/bpftrace/blob/master/INSTALL.md#copying-bpftrace-binary-from-docker
 COPY --from=quay.io/iovisor/bpftrace:master-vanilla_llvm_clang_glibc2.27 /usr/bin/bpftrace /usr/bin/bpftrace
@@ -84,7 +84,8 @@ WORKDIR /root
 ADD motd /etc/motd
 RUN echo 'cat /etc/motd' >> /etc/profile &&  echo 'cat /etc/motd' >> /etc/bash.bashrc \
     && touch /usr/src/.notmounted && mkdir /lib/modules && touch /lib/modules/.notmounted \
-    && mkdir /bpf
+    && mkdir /bpf \
+    && ln -s /usr/bin/bpftool /usr/local/bin/bpftool
 ADD entrypoint.sh /entrypoint.sh
 ADD prepare-bpf.sh /prepare-bpf.sh
 ADD /bpf /bpf

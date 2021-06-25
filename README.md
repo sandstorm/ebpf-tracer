@@ -60,13 +60,15 @@ spec:
   containers:
     - name: debugger
       image: docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest
+      imagePullPolicy: Always
       securityContext:
         privileged: true
 ```
 
 Now, wait until the container is up and running fully: `kubectl get pods -w`.
 
-Now, you can connect: `kubectl exec -it debugger`. Happy debugging!
+Now, you can connect: `kubectl exec -it debugger`. If you use [sku](https://sandstorm.github.io/sku/), you
+can run `sku enter`. Happy debugging!
 
 
 ## Included Docs

@@ -6,7 +6,7 @@
 BEGIN {
         // printf("Monitoring processes of cgroup %d", cgroupid(str($1)));
 }
-tracepoint:syscalls:sys_enter_sendto /pid >= 44397 && pid <= 44422/
+tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2/
 {
     if (@end[pid, tid, args->fd] == 0) {
         // first connection
@@ -25,7 +25,7 @@ tracepoint:syscalls:sys_enter_sendto /pid >= 44397 && pid <= 44422/
 
 }
 
-tracepoint:syscalls:sys_enter_recvfrom /pid >= 44397 && pid <= 44422/
+tracepoint:syscalls:sys_enter_recvfrom /pid >= $1 && pid <= $2/
 {
     @end[pid, tid, args->fd] = nsecs;
 }
