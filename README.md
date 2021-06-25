@@ -12,7 +12,7 @@ This image supports tracing in Docker-for-Mac and in Linux workloads.
 - [Getting Started](#getting-started)
     - [Usage in Docker](#usage-in-docker)
     - [Usage in Kubernetes](#usage-in-kubernetes)
-    - [Minimal Do](#minimal-do)
+    - [Included Docs](#included-docs)
 - [Included Tooling](#included-tooling)
     - [General Linux Observability Tools](#general-linux-observability-tools)
     - [BPFTrace](#bpftrace)
@@ -66,11 +66,12 @@ spec:
 
 Now, wait until the container is up and running fully: `kubectl get pods -w`.
 
-Now, you can connect: `kubectl exec -it debugger`. If you have 
+Now, you can connect: `kubectl exec -it debugger`. Happy debugging!
 
 
-## Minimal Do
+## Included Docs
 
+The following is printed when the container starts up:
 
 ```
       _      _                 
