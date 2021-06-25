@@ -85,10 +85,12 @@ ADD motd /etc/motd
 RUN echo 'cat /etc/motd' >> /etc/profile &&  echo 'cat /etc/motd' >> /etc/bash.bashrc \
     && touch /usr/src/.notmounted && mkdir /lib/modules && touch /lib/modules/.notmounted \
     && mkdir /bpf \
-    && ln -s /usr/bin/bpftool /usr/local/bin/bpftool
+    && ln -s /usr/bin/bpftrace /usr/local/bin/bpftrace
 ADD entrypoint.sh /entrypoint.sh
 ADD prepare-bpf.sh /prepare-bpf.sh
 ADD /bpf /bpf
 
+# needed for tmux -CC attach
+ENV LANG=UTF-8
 
 CMD ["/entrypoint.sh"]

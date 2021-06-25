@@ -1,0 +1,201 @@
+#!/usr/local/bin/bpftrace
+
+// Print what is sent over the wire for stuff like DB connections.
+// $1: Start PID
+// $2: Target PID
+// $3: IP addr
+// $4: Port
+
+#include <linux/in.h>
+#include <linux/in6.h>
+
+
+END {
+    clear(@fdToMonitor);
+}
+
+
+//
+// 1) SET @fdToMonitor[pid][fd] = 1, only if $3 $4, $5, $6, (IP) and $7 (Port) match
+//
+tracepoint:syscalls:sys_enter_connect
+/(args->uservaddr->sa_family == AF_INET ||
+    args->uservaddr->sa_family == AF_INET6)
+    && pid >= $1 && pid <= $2
+/
+{
+    @sockaddr[tid] = args->uservaddr;
+    @fd[tid] = args->fd;
+}
+
+tracepoint:syscalls:sys_exit_connect
+/@fd[tid]/
+{
+    $fdId = @fd[tid];
+
+    // we only support IPv4 now.
+    if (@sockaddr[tid]->sa_family == AF_INET) {
+        $s = (struct sockaddr_in *)@sockaddr[tid];
+        $port = ($s->sin_port >> 8) | (($s->sin_port << 8) & 0xff00);
+        $ip = $s->sin_addr.s_addr;
+
+        // we need to separate IPs by octets, as we cannot compare "ntop()" with a string.
+        $ip1 = ($ip & 0x000000FF );  // 1st part of IP
+        $ip2 = ($ip & 0x0000FF00 ) >> 8 ; // 2nd part of IP
+        $ip3 = ($ip & 0x00FF0000 ) >> 16 ; // 3rd part of IP
+        $ip4 = ($ip & 0xFF000000 ) >> 24 ; // 4rd part of IP
+        
+        if ($ip1 == $3 && $ip2 == $4 && $ip3 == $5 && $ip4 == $6 && $port == $7) {
+            printf("Tracing FD %d for target %s:%d", $fdId, ntop($ip), $port);
+            @fdToMonitor[pid, $fdId] = 1;
+        }
+    }
+
+    delete(@sockaddr[tid]);
+    delete(@fd[tid]);
+}
+
+
+//
+// 2) For FDs which match, @fdToMonitor
+//
+tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2 && @fdToMonitor[pid, args->fd]/
+{
+    $len = (int64)args->len;
+    printf("\n%d - ", $len);
+
+    $offset = 0;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+    
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+    
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+    
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    // 1024 bytes of query printed.
+
+    $offset = 0;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+    
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+    
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+    $offset += 64;
+    $nextLen = $len - $offset;
+    if ($nextLen > 64) { $nextLen = 64; }
+    if ($nextLen < 0) { return; }
+    printf("%r", buf(args->buff + $offset, $nextLen));
+
+}

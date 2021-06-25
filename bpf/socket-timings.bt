@@ -3,9 +3,19 @@
 // Measure Socket Timings for stuff like DB connections.
 // This works for interlocked request/responses, so for stuff like MariaDB connections.
 
+// TODO: measure on sys_exit_recvfrom??
+
 BEGIN {
         // printf("Monitoring processes of cgroup %d", cgroupid(str($1)));
 }
+
+END {
+    clear(@start);
+    clear(@end);
+    printf("\n\nLatency Histogram from the start of the first request to the start of the first reply.\nIndexed by PID, FD\nin us");
+}
+
+
 tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2/
 {
     if (@end[pid, tid, args->fd] == 0) {
@@ -25,6 +35,7 @@ tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2/
 
 }
 
+// TODO: measure on sys_exit_recvfrom??
 tracepoint:syscalls:sys_enter_recvfrom /pid >= $1 && pid <= $2/
 {
     @end[pid, tid, args->fd] = nsecs;

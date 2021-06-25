@@ -1,0 +1,91 @@
+#!/usr/local/bin/bpftrace
+
+// Measure Socket Timings for stuff like DB connections.
+// This works for interlocked request/responses, so for stuff like MariaDB connections.
+// It's socket-timings.bt, but extended by soconnect.bt; so that it is indexed by IP and Port properly.
+
+// TODO: measure on sys_exit_recvfrom??
+
+#include <linux/in.h>
+#include <linux/in6.h>
+
+
+BEGIN {
+        // printf("Monitoring processes of cgroup %d", cgroupid(str($1)));
+}
+
+END {
+    clear(@start);
+    clear(@end);
+    clear(@fdIpLookup);
+    clear(@fdPortLookup);
+    printf("\n\nLatency Histogram from the start of the first request to the start of the first reply.\nIndexed by PID, TargetIP, TargetPort\nin us");
+}
+
+//
+// 1) FILL @fdIpLookup and @fdPortLookup for later, only if $3 (IP) and $4 (Port) match
+//
+tracepoint:syscalls:sys_enter_connect
+/(args->uservaddr->sa_family == AF_INET ||
+    args->uservaddr->sa_family == AF_INET6)
+    && pid >= $1 && pid <= $2
+/
+{
+    @sockaddr[tid] = args->uservaddr;
+    @fd[tid] = args->fd;
+}
+
+tracepoint:syscalls:sys_exit_connect
+/@fd[tid]/
+{
+    $fdId = @fd[tid];
+    
+    if (@sockaddr[tid]->sa_family == AF_INET) {
+        $s = (struct sockaddr_in *)@sockaddr[tid];
+        $port = ($s->sin_port >> 8) | (($s->sin_port << 8) & 0xff00);
+        
+        @fdIpLookup[pid, $fdId] = ntop(AF_INET, $s->sin_addr.s_addr);
+        @fdPortLookup[pid, $fdId] = $port;
+    } else {
+        $s6 = (struct sockaddr_in6 *)@sockaddr[tid];
+        $port = ($s6->sin6_port >> 8) | (($s6->sin6_port << 8) & 0xff00);
+
+        @fdIpLookup[pid, $fdId] = ntop(AF_INET6, $s6->sin6_addr.in6_u.u6_addr8);
+        @fdPortLookup[pid, $fdId] = $port;
+    }
+
+    delete(@sockaddr[tid]);
+    delete(@fd[tid]);
+}
+
+
+//
+// 2) do the actual measurement
+//
+tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2/
+{
+    if (@end[pid, tid, args->fd] == 0) {
+        // first connection
+        if (@start[pid, tid, args->fd] == 0) {
+            @start[pid, tid, args->fd] = nsecs;
+        }
+    } else {
+        // old connection finished, starting a new one
+        $duration_us = (@end[pid, tid, args->fd] - @start[pid, tid, args->fd]) / 1000; // in us
+
+        $ip = @fdIpLookup[pid, args->fd];
+        $port = @fdPortLookup[pid, args->fd];
+        @us[pid, $ip, $port] = lhist($duration_us, 0, 5000, 100);
+
+        // new start
+        @start[pid, tid, args->fd] = nsecs;
+        delete(@end[pid, tid, args->fd]);
+    }
+
+}
+
+// TODO: measure on sys_exit_recvfrom??
+tracepoint:syscalls:sys_enter_recvfrom /pid >= $1 && pid <= $2/
+{
+    @end[pid, tid, args->fd] = nsecs;
+}
