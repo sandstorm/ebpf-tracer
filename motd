@@ -1,0 +1,45 @@
+      _      _                 
+     | |    | |                
+   __| | ___| |__  _   _  __ _ 
+  / _` |/ _ \ '_ \| | | |/ _` |
+ | (_| |  __/ |_) | |_| | (_| |
+  \__,_|\___|_.__/ \__,_|\__, |
+                          __/ |
+                         |___/ 
+
+This is a Debug Container inspired by github.com/nicolaka/netshoot.
+
+---------------------------------------------
+TOOL OVERVIEW
+
+This includes following tools on PATH:
+- Linux Performance Tools: http://www.brendangregg.com/Perf/linux_observability_tools.png
+- eBPF bpftrace tools: https://raw.githubusercontent.com/iovisor/bpftrace/master/images/bpftrace_probes_2018.png
+  Usage Examples: https://github.com/iovisor/bpftrace/blob/master/README.md#tools
+- eBPF BCC tools: http://www.brendangregg.com/BPF/bpf_performance_tools_book.png
+  Usage Examples: https://github.com/iovisor/bcc#contents
++ some more (traceloop, jq, vim, calicoctl, websocat, docker CLI)
+---------------------------------------------
+USAGE
+
+- needs privileged mode (docker: --privileged;  k8s: securityContext.privileged=true)
+- needs Host PID namespace (docker: --pid=host; k8s: hostPID=true)
+
+For eBPF tools, the following is needed:
+  - mount -t debugfs debugfs /sys/kernel/debug
+  - /usr/src/ must contain the kernel sources
+  - /lib/modules/ must be mounted from the host
+
+You can run /prepare-bpf.sh which automates the above three steps.
+If the directories are not mounted, they are copied from the host (via /proc/1/root).
+
+By default, the kernel sources for a recent Docker for Mac
+version are included in the image.
+---------------------------------------------
+FIRST STEPS
+
+ps faux            # process listing
+bpftrace -l        # list BPF probes
+ls /proc/1/root/   # contains the HOST file system !!! WATCH OUT !!!
+ls /bpf/           # our custom bpftrace scripts
+---------------------------------------------

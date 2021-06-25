@@ -1,0 +1,31 @@
+#!/usr/local/bin/bpftrace
+
+// Measure Socket Timings for stuff like DB connections.
+// This works for interlocked request/responses, so for stuff like MariaDB connections.
+
+BEGIN {
+        // printf("Monitoring processes of cgroup %d", cgroupid(str($1)));
+}
+tracepoint:syscalls:sys_enter_sendto /pid >= 44397 && pid <= 44422/
+{
+    if (@end[pid, tid, args->fd] == 0) {
+        // first connection
+        if (@start[pid, tid, args->fd] == 0) {
+            @start[pid, tid, args->fd] = nsecs;
+        }
+    } else {
+        // old connection finished, starting a new one
+        $duration_us = (@end[pid, tid, args->fd] - @start[pid, tid, args->fd]) / 1000; // in us
+        @us[pid, args->fd] = lhist($duration_us, 0, 5000, 100);
+
+        // new start
+        @start[pid, tid, args->fd] = nsecs;
+        delete(@end[pid, tid, args->fd]);
+    }
+
+}
+
+tracepoint:syscalls:sys_enter_recvfrom /pid >= 44397 && pid <= 44422/
+{
+    @end[pid, tid, args->fd] = nsecs;
+}
