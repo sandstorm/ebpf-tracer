@@ -3,17 +3,15 @@
 // Print what is sent over the wire for stuff like DB connections.
 // $1: Start PID
 // $2: Target PID
-// $3: IP addr
-// $4: Port
+// $3 $4 $5 $6: IP addr bytes (each individually)
+// $7: Port
 
 #include <linux/in.h>
 #include <linux/in6.h>
 
-
 END {
     clear(@fdToMonitor);
 }
-
 
 //
 // 1) SET @fdToMonitor[pid][fd] = 1, only if $3 $4, $5, $6, (IP) and $7 (Port) match
@@ -54,7 +52,6 @@ tracepoint:syscalls:sys_exit_connect
     delete(@sockaddr[tid]);
     delete(@fd[tid]);
 }
-
 
 //
 // 2) For FDs which match, @fdToMonitor
@@ -160,42 +157,5 @@ tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2 && @fdToMonitor[pid
     if ($nextLen < 0) { return; }
     printf("%r", buf(args->buff + $offset, $nextLen));
 
-    // 1024 bytes of query printed.
-
-    $offset = 0;
-    $nextLen = $len - $offset;
-    if ($nextLen > 64) { $nextLen = 64; }
-    if ($nextLen < 0) { return; }
-    printf("%r", buf(args->buff + $offset, $nextLen));
-    
-    $offset += 64;
-    $nextLen = $len - $offset;
-    if ($nextLen > 64) { $nextLen = 64; }
-    if ($nextLen < 0) { return; }
-    printf("%r", buf(args->buff + $offset, $nextLen));
-    
-    $offset += 64;
-    $nextLen = $len - $offset;
-    if ($nextLen > 64) { $nextLen = 64; }
-    if ($nextLen < 0) { return; }
-    printf("%r", buf(args->buff + $offset, $nextLen));
-
-    $offset += 64;
-    $nextLen = $len - $offset;
-    if ($nextLen > 64) { $nextLen = 64; }
-    if ($nextLen < 0) { return; }
-    printf("%r", buf(args->buff + $offset, $nextLen));
-
-    $offset += 64;
-    $nextLen = $len - $offset;
-    if ($nextLen > 64) { $nextLen = 64; }
-    if ($nextLen < 0) { return; }
-    printf("%r", buf(args->buff + $offset, $nextLen));
-
-    $offset += 64;
-    $nextLen = $len - $offset;
-    if ($nextLen > 64) { $nextLen = 64; }
-    if ($nextLen < 0) { return; }
-    printf("%r", buf(args->buff + $offset, $nextLen));
-
+    // 1024 bytes of query printed. Usually the maximal not-crashing length
 }

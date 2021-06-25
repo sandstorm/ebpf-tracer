@@ -48,4 +48,5 @@ ls /proc/1/root/   # contains the HOST file system !!! WATCH OUT !!!
 ls /bpf/           # our custom bpftrace scripts
 tmux -CC           # for opening a multiplexed console (iTerm on OSX only). ESC to send to BD
 tmux -CC attach    # for reconnecting to the BG shell  (iTerm on OSX only)
+screen             # alternative to tmux
 ---------------------------------------------
