@@ -1,0 +1,192 @@
+# taken from https://github.com/alexeldeib/bpftrace-static/blob/master/Dockerfile and adjusted
+FROM ubuntu:bionic-20210615.1 as bpf-builder
+
+ARG distro=bionic
+
+ARG bcc_ref="v0.12.0"
+ARG LLVM_VERSION="12"
+ENV DISTRO=${distro}
+ENV LLVM_VERSION=$LLVM_VERSION
+
+RUN apt-get update && apt-get install -y apt-transport-https curl gnupg &&\
+    llvmRepository="\n\
+deb http://apt.llvm.org/${DISTRO}/ llvm-toolchain-${DISTRO} main\n\
+deb-src http://apt.llvm.org/${DISTRO}/ llvm-toolchain-${DISTRO} main\n\
+deb http://apt.llvm.org/${DISTRO}/ llvm-toolchain-${DISTRO}-${LLVM_VERSION} main\n\
+deb-src http://apt.llvm.org/${DISTRO}/ llvm-toolchain-${DISTRO}-${LLVM_VERSION} main\n" &&\
+    echo $llvmRepository >> /etc/apt/sources.list && \
+    curl -L https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
+
+RUN DEBIAN_FRONTEND="noninteractive" apt-get update && apt-get install -y tzdata && apt-get install -y \
+    bison \
+    binutils-dev \
+    flex \
+    make \
+    g++ \
+    git \
+    libelf-dev \
+    zlib1g-dev \
+    libiberty-dev \
+    libbfd-dev \
+    libedit-dev \
+    clang-${LLVM_VERSION} \
+    libclang-${LLVM_VERSION}-dev \
+    libclang-common-${LLVM_VERSION}-dev \
+    libclang1-${LLVM_VERSION} \
+    llvm-${LLVM_VERSION} \
+    llvm-${LLVM_VERSION}-dev \
+    llvm-${LLVM_VERSION}-runtime \
+    libllvm${LLVM_VERSION} \
+    systemtap-sdt-dev \
+    python \
+    quilt \
+    luajit \
+    luajit-5.1-dev \
+    libssl-dev
+    #rsync
+RUN apt remove --purge --auto-remove cmake
+RUN version=3.16 \
+    && build=2 \
+    && mkdir -p /tmp \
+    && cd /tmp \
+    && curl -OL https://cmake.org/files/v$version/cmake-$version.$build.tar.gz \
+    && tar -xzvf cmake-$version.$build.tar.gz \
+    && cd cmake-$version.$build/ \
+    && ./bootstrap \
+    && make -j$(nproc) \
+    && make install
+
+RUN git clone https://github.com/iovisor/bcc.git \
+    && mkdir bcc/build; cd bcc/build \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. \
+    && make \
+    && make install &&  mkdir -p /usr/local/lib && \
+    cp src/cc/libbcc.a /usr/local/lib/libbcc.a && \
+    cp src/cc/libbcc-loader-static.a /usr/local/lib/libbcc-loader-static.a && \
+    cp ./src/cc/libbcc_bpf.a /usr/local/lib/libbpf.a 
+
+RUN apt-get install -y libgtest-dev && cd /usr/src/googletest && cmake . && cmake --build . --target install
+
+# https://github.com/iovisor/bpftrace/blob/0de3617c1d73f6031c7ab8647683aa610079f5b0/CMakeLists.txt
+# https://github.com/iovisor/bpftrace/blob/4e0ed6eeb929ac1a212b2681d68e6f491feeda94/.github/workflows/embedded.yml
+# https://github.com/iovisor/bpftrace/blob/6aa2ab8f3b1f57c9ebd212f2bd8812c839147152/docker/build.sh
+# https://github.com/iovisor/bpftrace/blob/4e0ed6eeb929ac1a212b2681d68e6f491feeda94/docker/Dockerfile.llvm
+RUN git clone https://github.com/iovisor/bpftrace.git \
+    && mkdir bpftrace/build && cd bpftrace/build \
+    && cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local -DWARNINGS_AS_ERRORS:BOOL=OFF \
+      -DSTATIC_LINKING:BOOL=ON -DSTATIC_LIBC:BOOL=OFF \
+      -DEMBED_USE_LLVM:BOOL=ON -DEMBED_BUILD_LLVM:BOOL=OFF \
+      -DCMAKE_CXX_FLAGS='-include /usr/local/include/bcc/compat/linux/bpf.h -D__LINUX_BPF_H__' ../
+
+RUN cd bpftrace/build \
+    && make -j$(nproc) embedded_llvm
+
+RUN cd bpftrace/build \
+    && make -j$(nproc) embedded_clang
+    #&& rsync -a embedded_clang-prefix/ embedded_llvm-prefix/ /usr/local/ \
+#    && make -j$(nproc) \
+#    && make -j$(nproc) install
+
+#RUN strip --keep-symbol BEGIN_trigger /usr/local/bin/bpftrace
+
+# at end of build, expect:
+# /usr/local/bin/bpftrace contains static binary
+# /usr/local/share/bpftrace/tools contains bpftrace shared programs
+# /usr/local/share/bcc/tools contains bcc shared programs
+# and some static bcc libs
+#/usr/local/lib/libbcc.a 
+#/usr/local/lib/libbcc-loader-static.a
+#/usr/local/lib/libbpf.a 
+
+
+
+
+FROM docker/for-desktop-kernel:desktop-3.3.1 AS ksrc
+
+
+
+
+FROM ubuntu:focal
+
+WORKDIR /
+COPY --from=ksrc /kernel-dev.tar /
+RUN tar xf kernel-dev.tar && rm kernel-dev.tar
+
+ # https://github.com/dalance/procs
+ RUN apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    apache2-utils \
+    bash \
+    bind9-utils \
+    bird \
+    bridge-utils \
+    conntrack \
+    ctop \
+    curl \
+    dhcping \
+    ethtool \
+    file \
+    fping \
+    httpie \
+    iftop \
+    iperf \
+    iproute2 \
+    ipset \
+    iptables \
+    iptraf-ng \
+    iputils-arping iputils-clockdiff iputils-ping iputils-tracepath \
+    ipvsadm \
+    jq \
+    mtr \
+    snmp \
+    netcat-openbsd \
+    netgen \
+    nftables \
+    ngrep \
+    nmap \
+    openssl \
+    python2 \
+    scapy \
+    socat \
+    strace \
+    tcpdump \
+    tcptraceroute \
+    termshark \
+    tshark \
+    util-linux \
+    vim
+
+RUN cd /usr/local/bin \
+    && curl -o calicoctl -O -L  "https://github.com/projectcalico/calicoctl/releases/download/v3.19.1/calicoctl" \
+    && chmod +x calicoctl
+
+RUN curl -L -o websocat.deb https://github.com/vi/websocat/releases/download/v1.8.0/websocat_1.8.0_newer_amd64.deb && dpkg -i websocat.deb && rm websocat.deb
+
+
+#    procs
+RUN apt-get install -y gnupg && curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg \
+    && echo \
+    "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
+    focal stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y docker-ce-cli
+
+COPY --from=kinvolk/traceloop:latest /bin/traceloop /bin/traceloop
+
+
+COPY --from=bpf-builder /usr/local/bin/bpftrace /usr/local/bin/bpftrace
+COPY --from=bpf-builder /usr/local/share/bpftrace/tools /usr/local/share/bpftrace/tools
+COPY --from=bpf-builder /usr/local/share/bcc/tools /usr/local/share/bcc/tools
+COPY --from=bpf-builder /usr/local/lib/libbcc.a /usr/local/lib/libbcc.a 
+COPY --from=bpf-builder /usr/local/lib/libbcc-loader-static.a /usr/local/lib/libbcc-loader-static.a
+COPY --from=bpf-builder /usr/local/lib/libbpf.a /usr/local/lib/libbpf.a 
+
+
+
+WORKDIR /root
+#ADD motd /root/motd
+ADD entrypoint.sh /entrypoint.sh
+
+CMD ["/entrypoint.sh"]
+
+FROM bpf-builder
