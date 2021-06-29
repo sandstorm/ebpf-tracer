@@ -24,21 +24,42 @@ This image supports tracing in Docker-for-Mac and in Linux workloads.
 
 # Getting Started
 
-The Docker Image is published on docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest and is **Publicly Available** without any authentication.
+## Getting Started (on local Docker)
 
-## Usage in Docker
+The Docker Image is published on _docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest_ and is **Publicly Available** without any authentication.
 
+### Start this debugging container:
 
-For Docker for Mac: 
+#### Mac OS X
 
 ```bash
-docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /etc/localtime:/etc/localtime:ro -v /var/run/docker.sock:/var/run/docker.sock --pid=host docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest
+docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /etc/localtime:/etc/localtime:ro -v /var/run/docker.sock:/var/run/docker.sock --pid=host --env SHELL_ENV_DISPLAY=dev-local docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest
 ```
 
-For Linux environments, you should additionally mount the kernel headers from `/usr/src`:
+#### Linux
 
+For Linux environments, you should additionally mount the kernel headers from `/usr/src`.
+
+```bash
+docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro -v /etc/localtime:/etc/localtime:ro -v /var/run/docker.sock:/var/run/docker.sock --pid=host --env SHELL_ENV_DISPLAY=dev-local docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest
 ```
-docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /usr/src:/usr/src:ro -v /etc/localtime:/etc/localtime:ro -v /var/run/docker.sock:/var/run/docker.sock --pid=host docker-hub.sandstorm.de/public-containers/ebpf-tracer:latest
+
+### Start a dummy container doing some networking
+
+```bash
+docker run --rm -it busybox
+# inside busybox container
+ping google.de
+```
+
+### trace ping-process
+
+```bash
+# inside debugging container
+ps faux | grep -i ping # find pid of ping
+strace -p <PID> # trace all syscalls of ping
+cd /bpf
+bpftrace socket-timings.bt 3403 3403 # stop recording with Ctrl+C to see results
 ```
 
 ## Usage in Kubernetes
@@ -152,7 +173,7 @@ The list of tools **with usage examples** can be found [in the BPFTrace README](
 
 ```bash
 docker build --progress=plain --pull -t ebpf-debug .
-docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /etc/localtime:/etc/localtime:ro -v /var/run/docker.sock:/var/run/docker.sock: --pid=host ebpf-debug
+docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /etc/localtime:/etc/localtime:ro -v /var/run/docker.sock:/var/run/docker.sock: --pid=host --env SHELL_ENV_DISPLAY=dev-local ebpf-debug
 ```
 
 ## Further Reading / Prior Art
