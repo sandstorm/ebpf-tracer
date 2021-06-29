@@ -29,6 +29,26 @@ tracepoint:syscalls:sys_enter_sendto
     }
 }
 
+/*
+ * Though the difference is usually very small, we want to measure the time between sys_enter_sendto and sys_exit_recvfrom,
+ * and not sys_enter_recvfrom. We have to "save" the socket file-descriptor in systen_enter_recvfrom though.
+ *
+ * The below trace shows measurements of a ping process (during local development, written by printf statements within tracepoints):
+ * [system µs - message]
+ * 798475852 - >>> tracepoint:syscalls:sys_enter_sendto: args->fd=0
+ * 798476067 - tracepoint:syscalls:sys_enter_recvfrom: args->fd=0
+ * 798493993 - tracepoint:syscalls:sys_exit_recvfrom
+ * 798494105 - tracepoint:syscalls:sys_enter_recvfrom: args->fd=0
+ * 799476983 - tracepoint:syscalls:sys_exit_recvfrom
+ * 799477099 - >>> tracepoint:syscalls:sys_enter_sendto: args->fd=0
+ * 799477311 - tracepoint:syscalls:sys_enter_recvfrom: args->fd=0
+ * 799525011 - tracepoint:syscalls:sys_exit_recvfrom
+ * 799525160 - tracepoint:syscalls:sys_enter_recvfrom: args->fd=0
+ * 800480223 - tracepoint:syscalls:sys_exit_recvfrom
+ *
+ * Currently I am not sure under which circumstances the time between enter and exit could increases into the ms range.
+ */
+
 tracepoint:syscalls:sys_enter_recvfrom
 /@start[pid, tid, args->fd]/
 {
