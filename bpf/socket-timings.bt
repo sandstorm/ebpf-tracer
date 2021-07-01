@@ -4,13 +4,16 @@
  * Monitors round-trip times of request for processes with arg1 <= PID <= arg2
  * and prints a histogram of round-trip times in µs.
  * Histogram shows 100 µs buckets from 0 to 5k µs.
+ *
+ * Note that the last request is not included into the measurements!
+ * This should be ok, since this script gives an overview over many requests.
  */
 
 BEGIN {
     printf("Monitoring round-trip times of request for processes with %d (arg1) <= PID <= %d (arg2)\n", $1, $2);
 }
 
-tracepoint:syscalls:sys_enter_sendto
+tracepoint:syscalls:sys_enter_connect
 /pid >= $1 && pid <= $2/
 {
     if (@end[pid, tid, args->fd] == 0) {

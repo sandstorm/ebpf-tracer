@@ -2,13 +2,15 @@
 
 Monitors round-trip times of request for processes with arg1 <= PID <= arg2 and prints a histogram of round-trip times in µs. The histogram shows 100 µs buckets from 0 to 5k µs.
 
+Note that the last request is not included into the measurements! This should be ok, since this script gives an overview over many requests.
+
 ## Usage
 
 ```bash
-# (optional) start ping for local testing
-ping google.de
-# search for PID, e.g. of ping process
-ps faux | grep -i ping
+# (optional) start process for local testing
+php -r 'while(true) { file_get_contents("https://sandstorm.de"); echo "."; sleep(2); }'
+# search for PID, e.g. of php process
+ps faux | grep -i php
 # trace processes with 2929 <= PID <= 2929
 bpftrace socket-timings.bt 2929 2929
 # stop measurements with Ctrl + C
@@ -16,7 +18,7 @@ bpftrace socket-timings.bt 2929 2929
 
 ## Example Result
 
-Note that this example output is not for `ping` since it would be too boring.
+Note that this example output is not for `php` since it would be too boring.
 
 ```
 Attaching 5 probes...

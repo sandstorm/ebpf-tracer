@@ -1,25 +1,19 @@
 #!/usr/local/bin/bpftrace
-
-// Measure Socket Timings for stuff like DB connections.
-// This works for interlocked request/responses, so for stuff like MariaDB connections.
-// It's socket-timings.bt, but extended by soconnect.bt; so that it is indexed by IP and Port properly.
-
-// TODO: measure on sys_exit_recvfrom??
+/*
+ * !!! NOT YET WORKING CORRECTLY !!!
+ *
+ * Monitors round-trip times of request for processes with arg1 <= PID <= arg2
+ * and prints a histogram of round-trip times in µs.
+ * Histogram shows 100 µs buckets from 0 to 5k µs.
+ * This works for interlocked request/responses, so for stuff like MariaDB connections.
+ * It's socket-timings.bt, but extended by soconnect.bt; so that it is indexed by IP and Port properly.
+ */
 
 #include <linux/in.h>
 #include <linux/in6.h>
 
-
 BEGIN {
-        // printf("Monitoring processes of cgroup %d", cgroupid(str($1)));
-}
-
-END {
-    clear(@start);
-    clear(@end);
-    clear(@fdIpLookup);
-    clear(@fdPortLookup);
-    printf("\n\nLatency Histogram from the start of the first request to the start of the first reply.\nIndexed by PID, TargetIP, TargetPort\nin us");
+    printf("Monitoring round-trip times of request for processes with %d (arg1) <= PID <= %d (arg2)\n", $1, $2);
 }
 
 //
@@ -62,7 +56,8 @@ tracepoint:syscalls:sys_exit_connect
 //
 // 2) do the actual measurement
 //
-tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2/
+tracepoint:syscalls:sys_enter_connect
+/pid >= $1 && pid <= $2/
 {
     if (@end[pid, tid, args->fd] == 0) {
         // first connection
@@ -81,11 +76,28 @@ tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2/
         @start[pid, tid, args->fd] = nsecs;
         delete(@end[pid, tid, args->fd]);
     }
-
 }
 
-// TODO: measure on sys_exit_recvfrom??
-tracepoint:syscalls:sys_enter_recvfrom /pid >= $1 && pid <= $2/
+tracepoint:syscalls:sys_enter_recvfrom
+/@start[pid, tid, args->fd]/
 {
-    @end[pid, tid, args->fd] = nsecs;
+    @recvfromFd[pid, tid] = args->fd;
+}
+
+tracepoint:syscalls:sys_exit_recvfrom
+// do not check for @recvfromFd[pid, tid] since the fd can be 0 when tracing ping (is this a bug?)
+/pid >= $1 && pid <= $2/
+{
+    $fd = @recvfromFd[pid, tid];
+    @end[pid, tid, $fd] = nsecs;
+    delete(@recvfromFd[pid, tid]);
+}
+
+END {
+    // delete intermediate results (otherwise they are printed)
+    clear(@start);
+    clear(@end);
+    clear(@fdIpLookup);
+    clear(@fdPortLookup);
+    printf("\n\nLatency Histogram from the start of the first request to the start of the first reply.\nIndexed by PID, FD in µs");
 }

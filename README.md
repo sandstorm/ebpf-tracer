@@ -47,17 +47,17 @@ docker run --rm --privileged -it -v /lib/modules:/lib/modules:ro -v /usr/src:/us
 ### Start a dummy container doing some networking
 
 ```bash
-docker run --rm -it busybox
-# inside busybox container
-ping google.de
+docker run --rm -it php:7
+# inside php container
+while(true) { file_get_contents("https://sandstorm.de"); echo "."; sleep(2); }
 ```
 
-### trace ping-process
+### trace php-process
 
 ```bash
 # inside debugging container
-ps faux | grep -i ping # find pid of ping
-strace -p <PID> # trace all syscalls of ping
+ps faux | grep -i php # find pid of php
+strace -p <PID> # trace all syscalls of php
 cd /bpf
 bpftrace socket-timings.bt 3403 3403 # stop recording with Ctrl+C to see results
 ```
