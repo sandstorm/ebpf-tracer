@@ -11,9 +11,8 @@
  * When copying or porting, include this comment.
  *
  * 09-Apr-2019  Brendan Gregg   Created this.
+ * !!! contains small adjustments from Sandstorm !!!
  */
-
-
 
 #include <linux/in.h>
 #include <linux/in6.h>
@@ -24,8 +23,10 @@
 
 BEGIN
 {
+    printf("Showing TCP/IP connects for processes with %d (arg1) <= PID <= %d (arg2)\n", $1, $2); // SSM modification
+
 	printf("%-6s %-6s %-16s FAM %-16s %-5s %8s %s\n", "PID", "FD", "PROCESS",
-	    "ADDRESS", "PORT", "LAT(us)", "RESULT");
+	    "ADDRESS", "PORT", "LAT(µs)", "RESULT");
 	// connect(2) has more details:
 	@err2str[0] = "Success";
 	@err2str[EPERM] = "Permission denied";
