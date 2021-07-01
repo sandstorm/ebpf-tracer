@@ -65,6 +65,7 @@ tracepoint:syscalls:sys_exit_recvfrom
 }
 
 END {
+    // delete intermediate results (otherwise they are printed)
     clear(@start);
     clear(@end);
     clear(@recvfromFd);
