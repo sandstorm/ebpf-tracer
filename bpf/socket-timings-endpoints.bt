@@ -1,7 +1,5 @@
 #!/usr/local/bin/bpftrace
 /*
- * !!! NOT YET WORKING CORRECTLY !!!
- *
  * Monitors round-trip times of request for processes with arg1 <= PID <= arg2
  * and prints a histogram of round-trip times in µs.
  * Histogram shows 100 µs buckets from 0 to 5k µs.
