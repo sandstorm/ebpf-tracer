@@ -56,7 +56,7 @@ tracepoint:syscalls:sys_exit_connect
 //
 // 2) do the actual measurement
 //
-tracepoint:syscalls:sys_enter_connect
+tracepoint:syscalls:sys_enter_sendto
 /pid >= $1 && pid <= $2/
 {
     if (@end[pid, tid, args->fd] == 0) {
@@ -66,10 +66,11 @@ tracepoint:syscalls:sys_enter_connect
         }
     } else {
         // old connection finished, starting a new one
-        $duration_us = (@end[pid, tid, args->fd] - @start[pid, tid, args->fd]) / 1000; // in us
+        $duration_us = (@end[pid, tid, args->fd] - @start[pid, tid, args->fd]) / 1000; // in µs
 
         $ip = @fdIpLookup[pid, args->fd];
         $port = @fdPortLookup[pid, args->fd];
+        @control[pid, args->fd] = lhist($duration_us, 0, 5000, 100);
         @us[pid, $ip, $port] = lhist($duration_us, 0, 5000, 100);
 
         // new start
@@ -99,5 +100,7 @@ END {
     clear(@end);
     clear(@fdIpLookup);
     clear(@fdPortLookup);
+    clear(@sockaddr);
+    clear(@fd);
     printf("\n\nLatency Histogram from the start of the first request to the start of the first reply.\nIndexed by PID, FD in µs");
 }
