@@ -9,8 +9,8 @@
 #include <linux/in.h>
 #include <linux/in6.h>
 
-END {
-    clear(@fdToMonitor);
+BEGIN {
+    printf("Tracing requests for processes %d (arg1) <= PID <= %d (arg2) to %d.%d.%d.%d:%d (arg3 - arg7)\n", $1, $2, $3, $4, $5, $6, $7);
 }
 
 //
@@ -44,7 +44,7 @@ tracepoint:syscalls:sys_exit_connect
         $ip4 = ($ip & 0xFF000000 ) >> 24 ; // 4rd part of IP
         
         if ($ip1 == $3 && $ip2 == $4 && $ip3 == $5 && $ip4 == $6 && $port == $7) {
-            printf("Tracing FD %d for target %s:%d", $fdId, ntop($ip), $port);
+            printf("\nTracing FD %d for target %s:%d", $fdId, ntop($ip), $port);
             @fdToMonitor[pid, $fdId] = 1;
         }
     }
@@ -56,7 +56,8 @@ tracepoint:syscalls:sys_exit_connect
 //
 // 2) For FDs which match, @fdToMonitor
 //
-tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2 && @fdToMonitor[pid, args->fd]/
+tracepoint:syscalls:sys_enter_sendto
+/pid >= $1 && pid <= $2 && @fdToMonitor[pid, args->fd]/
 {
     $len = (int64)args->len;
     printf("\n%d - ", $len);
@@ -158,4 +159,8 @@ tracepoint:syscalls:sys_enter_sendto /pid >= $1 && pid <= $2 && @fdToMonitor[pid
     printf("%r", buf(args->buff + $offset, $nextLen));
 
     // 1024 bytes of query printed. Usually the maximal not-crashing length
+}
+
+END {
+    clear(@fdToMonitor);
 }
