@@ -117,4 +117,5 @@ RUN cat bash.colorprompt.sh >> /root/.bashrc && \
     rm bash.colorprompt.sh
 ENV SHELL_ENV_DISPLAY="production system"
 
+WORKDIR /bpf
 CMD ["/command.sh"]
